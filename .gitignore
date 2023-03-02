@@ -1,0 +1,5 @@
+# Ignore everything in the 'test/' subfolder
+test/*
+
+# Ignore all files ending with '.ipynb'
+*.ipynb
