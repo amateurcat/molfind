@@ -6,62 +6,28 @@ from multiprocessing import JoinableQueue, Process, Manager
 from collections import Counter
 import numpy as np
 
-sys.path.append('/home/shuhao/softwares/miniconda3/envs/ani_3.6/lib/python3.6/site-packages/openbabel')
-import openbabel
-
 with open("FragmentLib.pkl", 'rb') as fr:
     FRAGMENT_LIB = pickle.load(fr)
-    
-def OBfind(atoms):
-    # Based on openbabel python interface v3.1.1
-    # load xyz file and use ConnectTheDots() to build bond connections
-    # then output SMILES and count how many fragments in SMILES
-    # May contain different SMILES that actually represent a same species
-    cmatrix = atoms.cell.array
-    #print(cmatrix)
-    ucell = openbabel.OBUnitCell()
-    ucell.SetData(openbabel.vector3(*cmatrix[0]), openbabel.vector3(*cmatrix[1]), openbabel.vector3(*cmatrix[2]))
-    ucell.SetSpaceGroup('P 1')
-    
-    s = io.StringIO()
-    ase.io.write(s, atoms, format='xyz')
-    
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("xyz", "smi")
-    mol = openbabel.OBMol()
-    obConversion.ReadString(mol, s.getvalue())
-    mol.CloneData(ucell)
-    mol.SetPeriodicMol(True)
-
-    openbabel.OBUnitCell.FillUnitCell(ucell,mol)
-    mol.ConnectTheDots()
-    obConversion.WriteString(mol)
-
-    smile = obConversion.WriteString(mol)
-    #print(smile)
-    ret = Counter(smile.split("\t")[0].split('.'))
-    #print(ret)
-    
-    return ret
 
 def Graphfind(atoms):
     nl = []
-    for info in atoms2graph(atoms):
+    Gs = atoms2graph(atoms)
+    for info in Gs:
         n = FRAGMENT_LIB.search(*info)
         nl.append(n)
     ret = Counter(nl)
     
-    return ret
+    return (ret, Gs)
     
 
 class MolFinder():
-    def __init__(self, queue, add_to, finder=OBfind):
+    def __init__(self, queue, collector, finder=Graphfind):
         self.queue = queue
         self.p = Process(target=self.wrapper)
 
         #define how to treat returns from single process
         #and how it interact to the collector
-        self.add_to = add_to
+        self.collector = collector
         self.finder = finder
 
     def wrapper(self):
@@ -75,7 +41,7 @@ class MolFinder():
             else:
                 index, atoms = args
                 ret = self.finder(atoms)
-                self.add_to.append((index,ret))
+                self.collector((index,ret))
                 self.queue.task_done()
 
     def start(self):
