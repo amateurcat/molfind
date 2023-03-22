@@ -10,6 +10,7 @@ import openbabel
 
 def GetOBMolAtomIDList(mol):
     # OBMol._atomIds is a protected feature
+    # and cannot be read from python interface
     # Have to rebuild it with this function
     ret = []
     for a in openbabel.OBMolAtomIter(mol):
@@ -20,7 +21,6 @@ def GetOBMolAtomIDList(mol):
 ###!!! TODO: 
 # This function does not require ase.atom as input at all
 # instead we can just take sliced xyz file like io.StringIO
-# may also need to modify Parallel.MolFinder though
 def OBfind(atoms):
     # Based on openbabel python interface v3.1.1
     # load xyz file and use ConnectTheDots() to build bond connections
@@ -46,8 +46,8 @@ def OBfind(atoms):
     mol.ConnectTheDots()
     obConversion.WriteString(mol)
     
-    ret = {}
+    ret = []
     for m in mol.Separate():
-        ret[obConversion.WriteString(m)] = GetOBMolAtomIDList(m)
+        ret.append((obConversion.WriteString(m), GetOBMolAtomIDList(m)))
     
     return ret
