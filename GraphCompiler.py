@@ -3,7 +3,7 @@ import ase.io, sys
 from primePy import primes
 
 #if not insert this path to the front, jupyter will use scipy in ~/.local/python3.8/site-packages instead
-sys.path.insert(0, "/home/shuhao/softwares/miniconda3/envs/autoani/lib/python3.8/site-packages")
+#sys.path.insert(0, "/home/shuhao/softwares/miniconda3/envs/autoani/lib/python3.8/site-packages")
 from scipy.spatial.distance import pdist   #scipy v1.8.0
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -23,12 +23,12 @@ BOND_LENGTH_LIB = {(1,1):(0.737,),
                   }
 
 BOND_LENGTH_LIB = {PRIME_LIST[k[0]-1]*PRIME_LIST[k[1]-1] : v for k,v in BOND_LENGTH_LIB.items()}
-BUFFER = 1.1
+BUFFER = 1.05
 
 def numbers2prime(numbers):
     return np.array([PRIME_LIST[n-1] for n in numbers])
 
-def get_CompositeNumberMatrix(atoms, buffer = BUFFER):
+def get_CompositeNumberMatrix(atoms, buffer=BUFFER):
     #assuming pbc and cell info is stored into the input Atoms instance
     #considering pbc by defalut, turn off pbc by switching Atoms.pbc to False
     #bond length cutoff will be multiple by bufffer

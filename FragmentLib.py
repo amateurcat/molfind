@@ -72,17 +72,22 @@ if __name__ == "__main__":
     # I stored some xyz files of small molecules in ./StructureFiles/
     # named by their chemical name, so just traverse that folder to make a test FragmentLib
     # may need to add more or import from PuBChem database
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--fragments_folder', type=str, default='./StructureFiles/')
+    parser.add_argument('--save_to', type=str, default='./FragmentLib.pkl')
+    args = parser.parse_args()
     
     start = time.time()
     
-    p = Path('StructureFiles/')
+    p = Path(args.fragments_folder)
     FRAGMENT_LIB = FragmentLib()
     for f in p.glob('*.xyz'):
         name = f.stem
         atoms = ase.io.read(f)
         FRAGMENT_LIB.append(name,atoms)
         
-    with open("FragmentLib.pkl", 'wb') as fw:
+    with open("args.save_to", 'wb') as fw:
         pickle.dump(FRAGMENT_LIB, fw)
     
     print("Finish building the lib, time cost: " +  str(time.time()-start))

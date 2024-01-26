@@ -1,11 +1,9 @@
-import sys, io
+import sys, ase.io, io
 import numpy as np
-import ase
-from ase import Atoms
 
 # this is an openbabel v3.1.1 python library
-sys.path.append('/home/shuhao/softwares/miniconda3/envs/ani_3.6/lib/python3.6/site-packages/openbabel')
-import openbabel
+#sys.path.append('/home/shuhao/softwares/miniconda3/envs/ani_3.6/lib/python3.6/site-packages/openbabel')
+from openbabel import openbabel
 
 
 def GetOBMolAtomIDList(mol):
@@ -18,36 +16,41 @@ def GetOBMolAtomIDList(mol):
     
     return ret
 
-###!!! TODO: 
-# This function does not require ase.atom as input at all
-# instead we can just take sliced xyz file like io.StringIO
-def OBfind(atoms):
+def OBfind(atoms, cmatrix=None):
     # Based on openbabel python interface v3.1.1
-    # load xyz file and use ConnectTheDots() to build bond connections
-    # then output SMILES and count how many fragments in SMILES
-    # May contain different SMILES that actually represent a same species
-    cmatrix = atoms.cell.array
-    #print(cmatrix)
+    # load xyz_io and use ConnectTheDots() to build bond connections
+    # then output SMILES, InChI key and atom ID list of each fragments
+
+    if cmatrix is None:
+        cmatrix = atoms.get_cell()
+        assert cmatrix, "No cell info found in the input atoms!"
+
+    xyz_io = io.StringIO()
+    ase.io.write(xyz_io, atoms, format='xyz')
+
     ucell = openbabel.OBUnitCell()
     ucell.SetData(openbabel.vector3(*cmatrix[0]), openbabel.vector3(*cmatrix[1]), openbabel.vector3(*cmatrix[2]))
     ucell.SetSpaceGroup('P 1')
     
-    s = io.StringIO()
-    ase.io.write(s, atoms, format='xyz')
-    
     obConversion = openbabel.OBConversion()
     obConversion.SetInAndOutFormats("xyz", "smi")
     mol = openbabel.OBMol()
-    obConversion.ReadString(mol, s.getvalue())
+    obConversion.ReadString(mol, xyz_io.getvalue())
     mol.CloneData(ucell)
     mol.SetPeriodicMol(True)
 
     openbabel.OBUnitCell.FillUnitCell(ucell,mol)
     mol.ConnectTheDots()
     obConversion.WriteString(mol)
+
+    obConversion2 = openbabel.OBConversion()
+    obConversion2.SetInAndOutFormats("smi", "inchi")
     
     ret = []
     for m in mol.Separate():
-        ret.append((obConversion.WriteString(m), GetOBMolAtomIDList(m)))
+        s = obConversion.WriteString(m)
+        temp = openbabel.OBMol()
+        obConversion2.ReadString(temp, s)
+        ret.append((s.rstrip('\t\n'), obConversion2.WriteString(temp), GetOBMolAtomIDList(m)))
     
     return ret
