@@ -1,5 +1,4 @@
 import sys, ase.io, io
-import numpy as np
 
 # this is an openbabel v3.1.1 python library
 #sys.path.append('/home/shuhao/softwares/miniconda3/envs/ani_3.6/lib/python3.6/site-packages/openbabel')
@@ -25,6 +24,10 @@ def OBfind(atoms, cmatrix=None):
         cmatrix = atoms.get_cell()
         assert cmatrix, "No cell info found in the input atoms!"
 
+    # no need to optimize this by using io as input
+    # since all other engines use ase.Atoms as input 
+    # if you use io as input, you also need to modify AtomsQueueGenerator
+    # which requires reinvent the indices parser
     xyz_io = io.StringIO()
     ase.io.write(xyz_io, atoms, format='xyz')
 

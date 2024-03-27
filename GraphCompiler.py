@@ -1,13 +1,14 @@
 import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+from collections import Counter
 import ase.io, sys
-from primePy import primes
 
 #if not insert this path to the front, jupyter will use scipy in ~/.local/python3.8/site-packages instead
 #sys.path.insert(0, "/home/shuhao/softwares/miniconda3/envs/autoani/lib/python3.8/site-packages")
 from scipy.spatial.distance import pdist   #scipy v1.8.0
-import networkx as nx
-import matplotlib.pyplot as plt
 
+from primePy import primes
 
 PRIME_LIST = primes.first(119)[1:]
 
@@ -20,6 +21,7 @@ BOND_LENGTH_LIB = {(1,1):(0.737,),
                    (6,7):(1.469,1.279,1.154,), #R-NH2, RC=N-R, R-N#C
                    (6,8):(1.430,1.230,1.128,), #C-O, C=O, C#O+
                    (7,8):(1.360,1.150,1.060,), #N-O, N=O, N#O+
+                   (8,8):(1.208,), #O=O
                   }
 
 BOND_LENGTH_LIB = {PRIME_LIST[k[0]-1]*PRIME_LIST[k[1]-1] : v for k,v in BOND_LENGTH_LIB.items()}
@@ -28,7 +30,14 @@ BUFFER = 1.05
 def numbers2prime(numbers):
     return np.array([PRIME_LIST[n-1] for n in numbers])
 
-def get_CompositeNumberMatrix(atoms, buffer=BUFFER):
+
+###TODO: This procedure may be accelerated by using Pytorch 
+# if we can find a reliable pytorch implementation of pairwise distance of point cloud
+# with periodic boundary condition with arbitrary cell shape
+# Simply calculating the adjacency matrix by batch with tensor operation
+
+
+def get_CompositeNumberMatrix(atoms, buffer=BUFFER, bond_length_lib=BOND_LENGTH_LIB):
     #assuming pbc and cell info is stored into the input Atoms instance
     #considering pbc by defalut, turn off pbc by switching Atoms.pbc to False
     #bond length cutoff will be multiple by bufffer
@@ -40,7 +49,7 @@ def get_CompositeNumberMatrix(atoms, buffer=BUFFER):
     pl = numbers2prime(numbers).reshape(1,-1)
     temp_cnm = np.dot(pl.T, pl)   #O(n^2), but very easy to accelerate
     
-    dm = atoms.get_all_distances(mic=True)   #O(n^2), but very easy to accelerate
+    dm = atoms.get_all_distances(mic=True)   #O(n^2), but very easy to accelerate   ###TODO: check if this consider pbc
     
     cnm = np.ones(temp_cnm.shape)   #need to find a better abbreviation
     
@@ -50,9 +59,9 @@ def get_CompositeNumberMatrix(atoms, buffer=BUFFER):
             c = 0
             if x!=y:
                 t = temp_cnm[x][y]
-                if t in BOND_LENGTH_LIB.keys():
-                    for o,bl in enumerate(BOND_LENGTH_LIB[t]):
-                        if dm[x][y] <= bl * BUFFER:
+                if t in bond_length_lib.keys():
+                    for o,bl in enumerate(bond_length_lib[t]):
+                        if dm[x][y] <= bl * buffer:
                             c = t * 2**o
             
             cnm[x][y] = c
@@ -99,3 +108,19 @@ def atoms2graph(atoms):
         ret.append( (subgraph_N, subgraph_tfp, subgraph) )
     
     return ret
+
+class GraphFind():
+    def __init__(self, fragment_lib="./FragmentLib.pkl", buffer=1.05):
+        with open(fragment_lib, 'rb') as fr:
+            self.fragment_lib = pickle.load(fr)
+        self.buffer = buffer
+
+    def __call__(self, atoms):
+        nl = []
+        Gs = atoms2graph(atoms)
+        for info in Gs:
+            n = FRAGMENT_LIB.search(*info)
+            nl.append(n)
+        ret = Counter(nl)
+        
+        return (ret, Gs)

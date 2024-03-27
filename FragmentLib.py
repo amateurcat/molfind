@@ -1,7 +1,6 @@
 from GraphCompiler import atoms2graph
 from pathlib import Path
 from networkx.algorithms import isomorphism
-import pickle, time, ase.io
 
 class HashTable():
     
@@ -68,11 +67,11 @@ class FragmentLib():
     
 
 if __name__ == "__main__":
-    
     # I stored some xyz files of small molecules in ./StructureFiles/
     # named by their chemical name, so just traverse that folder to make a test FragmentLib
-    # may need to add more or import from PuBChem database
-    import argparse
+    # may need to add more or import from PubChem database
+    import argparse, ase.io, pickle, time
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--fragments_folder', type=str, default='./StructureFiles/')
     parser.add_argument('--save_to', type=str, default='./FragmentLib.pkl')

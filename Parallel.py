@@ -1,42 +1,6 @@
-from typing import Any
 import numpy as np
-import ase.io, pickle, io, sys
-from FragmentLib import *
-from GraphCompiler import atoms2graph
 from multiprocessing import JoinableQueue, Process
-from collections import Counter
-import numpy as np
-
-
-'''with open("./FragmentLib.pkl", 'rb') as fr:
-    FRAGMENT_LIB = pickle.load(fr)
-###TODO: make it a class so that you can change FRAGMENT_LIB during initialization
-# by doing so the BUFFER can be changed as well
-def Graphfind(atoms):
-    nl = []
-    Gs = atoms2graph(atoms)
-    for info in Gs:
-        n = FRAGMENT_LIB.search(*info)
-        nl.append(n)
-    ret = Counter(nl)
-    
-    return (ret, Gs)
-'''
-class GraphFind():
-    def __init__(self, fragment_lib="./FragmentLib.pkl", buffer=1.05):
-        with open(fragment_lib, 'rb') as fr:
-            self.fragment_lib = pickle.load(fr)
-        self.buffer = buffer
-
-    def __call__(self, atoms):
-        nl = []
-        Gs = atoms2graph(atoms)
-        for info in Gs:
-            n = FRAGMENT_LIB.search(*info)
-            nl.append(n)
-        ret = Counter(nl)
-        
-        return (ret, Gs)
+import ase.io
 
 class MolFinder():
     def __init__(self, queue, collector, finder, postprocess=None):
